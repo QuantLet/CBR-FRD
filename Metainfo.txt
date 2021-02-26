@@ -1,6 +1,6 @@
 Name of QuantLet: CBR-FRD
 
-Published in:'' 
+Published in: ''
 
 Description: 'Explainable ML method Case-Based Reasoning for financial risk detection'
 
