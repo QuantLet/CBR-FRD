@@ -66,24 +66,5 @@ def measure_others(X_train, y_train,X_test,y_test):
     gnb = GaussianNB()
     y_pred_gnb = gnb.fit(X_train, y_train).predict(X_test)
     ######################################################################################## 
-    import xgboost as xgb
-    xgb_model = xgb.XGBClassifier(objective="binary:logistic")   
-    xgb_params = {
-        "colsample_bytree": uniform(0.7, 0.3),
-        "gamma": uniform(0, 0.5),
-        "learning_rate": uniform(0.03, 0.3), # default 0.1 
-        "max_depth": randint(2, 6), # default 3
-        "n_estimators": randint(100, 150), # default 100
-        "subsample": uniform(0.6, 0.4)
-    }
-    
-    rand_xgb = RandomizedSearchCV(xgb_model, param_distributions=xgb_params, random_state=42, n_iter=200, cv=3, verbose=1, n_jobs=1, return_train_score=True)
-    
-    rand_xgb.fit(X_train, y_train)
-    
-    # KNears best estimator
-    xgb = rand_xgb.best_estimator_
-    
-    y_pred_xgb = xgb.predict(X_test)
 
-    return k, y_pred_log_reg, y_pred_knear, y_pred_svc, y_pred_tree, y_pred_gnb, y_pred_xgb
+    return k, y_pred_log_reg, y_pred_knear, y_pred_svc, y_pred_tree, y_pred_gnb

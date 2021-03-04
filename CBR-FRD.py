@@ -1,33 +1,21 @@
 """
 Created on Thu Oct 29 20:17:56 2020
-
 @author: waynelee
 """
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import numpy as np 
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from collections import Counter
-from sklearn.manifold import TSNE
-from sklearn.decomposition import PCA, TruncatedSVD
-import matplotlib.patches as mpatches
-from sklearn.preprocessing import StandardScaler, RobustScaler
-from sklearn.model_selection import StratifiedShuffleSplit
-from sklearn.utils import check_X_y
-from sklearn.utils import check_array
+from sklearn.preprocessing import RobustScaler
 import math
 import time
 import random
-import codecs, json
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.pipeline import make_pipeline
 from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score, accuracy_score, classification_report,precision_recall_fscore_support
 from sklearn.model_selection import KFold, StratifiedKFold
 import warnings
@@ -147,8 +135,8 @@ for jjj in range(10):
     data_X_test.append(X_test.tolist())
     data_y_test.append(y_test.tolist())
     ###############################################################################################
-    k, y_pred_log_reg, y_pred_knear, y_pred_svc, y_pred_tree, y_pred_gnb, y_pred_xgb = measure_others(X_train, y_train,X_test,y_test)
-    y_pred_all = [y_test.tolist(),y_pred_log_reg.tolist(), y_pred_knear.tolist(), y_pred_svc.tolist(), y_pred_tree.tolist(), y_pred_gnb.tolist(), y_pred_xgb.tolist()]
+    k, y_pred_log_reg, y_pred_knear, y_pred_svc, y_pred_tree, y_pred_gnb,= measure_others(X_train, y_train,X_test,y_test)
+    y_pred_all = [y_test.tolist(),y_pred_log_reg.tolist(), y_pred_knear.tolist(), y_pred_svc.tolist(), y_pred_tree.tolist(), y_pred_gnb.tolist()]
     ##############################################################################################
     nf = X.shape[1]
     maxmin = np.array(np.max(X, 0))-np.array(np.min(X, 0))
@@ -243,79 +231,6 @@ for jjj in range(10):
         y_pred_cbr_e = get_result1(k,dist,y_train,y_test)
         print('E-CBR Classifier:')
         print(classification_report(y_test, y_pred_cbr_e))
-        print('E-CBR Classifier:',precision_recall_fscore_support(y_test, y_pred_cbr_e, average=None,labels=[1]))
-        ################################################################################################
-    importances = np.ones((nf,))
-    start = timer()   
-    def get_f(params):
-        cbr_predict = []
-        gimportance =  importances
-        weights = gimportance/sum(gimportance)
-        polynomial = params[:nf]
-        polynomial1 = params[nf:]
-        for train_index, val_index in kf.split(X_train0):
-            X_train, X_val = X_train0[train_index], X_train0[val_index]
-            y_train, y_val = y_train0[train_index], y_train0[val_index]
-            dist = np.zeros((len(X_val), len(X_train)), dtype = np.float)
-    
-            blockdim = (32, 8)
-            grid_x = math.ceil(X_val.shape[0]/32)+10
-            grid_y = math.ceil(X_train.shape[0]/8)+10
-            griddim = (grid_x,grid_y)
-            d_train = cuda.to_device(X_train)
-            d_val = cuda.to_device(X_val)
-            d_dist = cuda.to_device(dist)
-            compute_sim[griddim, blockdim](weights, polynomial,polynomial1, maxmin, d_train, d_val, k, d_dist) 
-            d_dist.to_host()
-            cbr_predict.append(get_result(k,dist,y_train,y_val))
-        cbr_mean = np.mean(np.array(cbr_predict))
-        return(-cbr_mean)  
-    #pso
-    swarm_size = nf
-    dim = nf       # Dimension of X
-    epsilon = 1.0
-    options = {'c1': 1.5, 'c2':1.5, 'w':0.8}
-    
-    swarm_size = nf*2
-    dim = nf*2       # Dimension of X
-    constraints_p = (np.ones((nf*2,))/10,
-                      np.ones((nf*2,))*10)
-    
-    
-    def opt_func(X):
-        n_particles = X.shape[0]  # number of particles
-        dist = [get_f(X[i]) for i in range(n_particles)]
-        return np.array(dist)
-    
-    
-    optimizer = ps.single.GlobalBestPSO(n_particles=swarm_size,
-                                        dimensions=dim,
-                                        options=options,
-                                        bounds=constraints_p,init_pos = np.array([np.ones((2*nf,)),]*dim))
-
-    cost, joint_vars = optimizer.optimize(opt_func, iters=500)
-    dt = timer() - start
-    print("Data compute time %f s" % dt) 
-    polynomials = joint_vars[:nf]
-    polynomials1 = joint_vars[nf:] 
-    ################################################################################################
-    dist = np.zeros((len(X_test), len(X_train)), dtype = np.float)
-    sims = np.zeros((len(X_test), k), dtype = np.float)
-    blockdim = (32, 8)
-    grid_x = math.ceil(X_test.shape[0]/32)+10
-    grid_y = math.ceil(X_train.shape[0]/8)+10
-    griddim = (grid_x,grid_y)
-    d_train = cuda.to_device(X_train)
-    d_val = cuda.to_device(X_test)
-    d_dist = cuda.to_device(dist)
-    d_sims = cuda.to_device(sims)
-    compute_sim[griddim, blockdim](importances, polynomials, polynomials1, maxmin, d_train, d_val, k, d_dist) 
-    d_dist.to_host() 
-    y_pred_cbr_eqe = get_result1(k,dist,y_train,y_test)
-    print('EQE-CBR Classifier:')
-    print(classification_report(y_test, y_pred_cbr_eqe))
-    print('EQE-CBR Classifier:',precision_recall_fscore_support(y_test, y_pred_cbr_eqe, average=None,labels=[1]))
-    y_pred_all.append(y_pred_cbr_eqe.tolist())
     ################################################################################################   
     m = min(cost_all)
     min_i = [i for i, j in enumerate(cost_all) if j == m]
@@ -372,7 +287,6 @@ for jjj in range(10):
     print('svc:     ',roc_auc_score(y_test, y_pred_svc))
     print('d-tree:  ',roc_auc_score(y_test, y_pred_tree))
     print('nb:      ',roc_auc_score(y_test, y_pred_gnb))
-    print('cbr_eqe:   ',roc_auc_score(y_test, y_pred_cbr_eqe))
     print('cbr_eq:  ',roc_auc_score(y_test, y_pred_cbr_eq))   
     print('cbr_e:   ',roc_auc_score(y_test, y_pred_cbr_e))
 
